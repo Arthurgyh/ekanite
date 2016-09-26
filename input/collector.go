@@ -181,6 +181,8 @@ func (s *UDPCollector) Start(c chan<- *Event) error {
 					Sequence:      atomic.AddInt64(&sequenceNumber, 1),
 					SourceIP:      addr.String(),
 				}
+			} else {
+				fmt.Printf("not ok msg: %s \n", log)
 			}
 			stats.Add("udpEventsRx", 1)
 		}

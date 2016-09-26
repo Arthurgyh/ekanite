@@ -11,8 +11,9 @@ type RFC5424 struct {
 }
 
 func (p *Parser) newRFC5424Parser() {
-	p.rfc5424 = &RFC5424{}
-	p.rfc5424.compileMatcher()
+	var rfc5424 = &RFC5424{}
+	rfc5424.compileMatcher()
+	p.syslogParser = rfc5424
 }
 
 func (s *RFC5424) compileMatcher() {

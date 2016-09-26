@@ -59,7 +59,9 @@ const (
 	DefaultHTTPQueryAddr   = "localhost:8080"
 	DefaultDiagsIface      = "localhost:9951"
 	DefaultTCPServer       = "localhost:5514"
-	DefaultInputFormat     = "syslog"
+	DefaultUDPServer       = "localhost:514"
+	//	DefaultInputFormat     = "syslog"
+	DefaultInputFormat = "NginxError"
 )
 
 func main() {
@@ -69,8 +71,10 @@ func main() {
 		batchSize       = fs.Int("batchsize", DefaultBatchSize, "Indexing batch size")
 		batchTimeout    = fs.Int("batchtime", DefaultBatchTimeout, "Indexing batch timeout, in milliseconds")
 		indexMaxPending = fs.Int("maxpending", DefaultIndexMaxPending, "Maximum pending index events")
-		tcpIface        = fs.String("tcp", DefaultTCPServer, "Syslog server TCP bind address in the form host:port. To disable set to empty string")
-		udpIface        = fs.String("udp", "", "Syslog server UDP bind address in the form host:port. If not set, not started")
+		//		tcpIface        = fs.String("tcp", DefaultTCPServer, "Syslog server TCP bind address in the form host:port. To disable set to empty string")
+		//		udpIface        = fs.String("udp", "", "Syslog server UDP bind address in the form host:port. If not set, not started")
+		tcpIface        = fs.String("tcp", "", "Syslog server TCP bind address in the form host:port. To disable set to empty string")
+		udpIface        = fs.String("udp", DefaultUDPServer, "Syslog server UDP bind address in the form host:port. If not set, not started")
 		diagIface       = fs.String("diag", DefaultDiagsIface, "expvar and pprof bind address in the form host:port. If not set, not started")
 		caPemPath       = fs.String("tlspem", "", "path to CA PEM file for TLS-enabled TCP server. If not set, TLS not activated")
 		caKeyPath       = fs.String("tlskey", "", "path to CA key file for TLS-enabled TCP server. If not set, TLS not activated")
@@ -80,7 +84,7 @@ func main() {
 		retentionPeriod = fs.String("retention", DefaultRetentionPeriod, "Data retention period. Minimum is 24 hours")
 		cpuProfile      = fs.String("cpuprof", "", "Where to write CPU profiling data. Not written if not set")
 		memProfile      = fs.String("memprof", "", "Where to write memory profiling data. Not written if not set")
-		inputFormat     = fs.String("input", DefaultInputFormat, "Message format of input (only syslog supported)")
+		inputFormat     = fs.String("input", DefaultInputFormat, "Message format of input (only syslog/NginxError/ supported)")
 	)
 	fs.Usage = printHelp
 	fs.Parse(os.Args[1:])
@@ -148,6 +152,8 @@ func main() {
 
 	// Start draining batcher errors.
 	go drainLog("error indexing batch", errChan)
+
+	//	fmt.Printf("-----collect fmt for: %s", *inputFormat)
 
 	// Start TCP collector if requested.
 	if *tcpIface != "" {
