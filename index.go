@@ -14,8 +14,9 @@ import (
 	"time"
 
 	"github.com/blevesearch/bleve"
-	"github.com/blevesearch/bleve/analysis/analyzers/custom_analyzer"
-	"github.com/blevesearch/bleve/analysis/tokenizers/regexp_tokenizer"
+	"github.com/blevesearch/bleve/analysis/analyzer/custom"
+	"github.com/blevesearch/bleve/analysis/tokenizer/regexp"
+	"github.com/blevesearch/bleve/mapping"
 )
 
 const (
@@ -359,7 +360,7 @@ func (s *Shard) Close() error {
 	return nil
 }
 
-// Index indexes a slice of Documents in the shard.
+// Index indexes a slice of Documents into the shard.
 func (s *Shard) Index(documents []Document) error {
 	batch := s.b.NewBatch()
 
@@ -381,7 +382,7 @@ func (s *Shard) Total() (uint64, error) {
 	return s.b.DocCount()
 }
 
-// Document returns the source from the shard for the given ID.
+// Document returns the source document from the shard for the given ID.
 func (s *Shard) Document(id DocID) ([]byte, error) {
 	source, err := s.b.GetInternal([]byte(id))
 	if err != nil {
@@ -417,7 +418,7 @@ func listShards(path string) ([]string, error) {
 	return names, nil
 }
 
-func buildIndexMapping() (*bleve.IndexMapping, error) {
+func buildIndexMapping() (*mapping.IndexMappingImpl, error) {
 	var err error
 
 	// Create the index mapping, configure the analyzer, and set as default.
@@ -425,7 +426,7 @@ func buildIndexMapping() (*bleve.IndexMapping, error) {
 	err = indexMapping.AddCustomTokenizer("ekanite_tk",
 		map[string]interface{}{
 			"regexp": `[^\W_]+`,
-			"type":   regexp_tokenizer.Name,
+			"type":   regexp.Name,
 		})
 	if err != nil {
 		return nil, err
@@ -433,7 +434,7 @@ func buildIndexMapping() (*bleve.IndexMapping, error) {
 
 	err = indexMapping.AddCustomAnalyzer("ekanite",
 		map[string]interface{}{
-			"type":          custom_analyzer.Name,
+			"type":          custom.Name,
 			"char_filters":  []interface{}{},
 			"tokenizer":     `ekanite_tk`,
 			"token_filters": []interface{}{`to_lower`},

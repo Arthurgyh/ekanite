@@ -114,9 +114,6 @@ func main() {
 
 	// Create and open the Engine.
 	engine := ekanite.NewEngine(absDataDir)
-	if engine == nil {
-		log.Fatalf("failed to create indexing engine at %s", absDataDir)
-	}
 	engine.NumShards = *numShards
 	engine.RetentionPeriod = retention
 
@@ -139,9 +136,6 @@ func main() {
 	// Create and start the batcher.
 	batcherTimeout := time.Duration(*batchTimeout) * time.Millisecond
 	batcher := ekanite.NewBatcher(engine, *batchSize, batcherTimeout, *indexMaxPending)
-	if batcher == nil {
-		log.Fatal("failed to create indexing batcher")
-	}
 
 	errChan := make(chan error)
 	if err := batcher.Start(errChan); err != nil {
@@ -166,11 +160,7 @@ func main() {
 			log.Printf("TLS successfully configured")
 		}
 
-		collector, err := input.NewCollector("tcp", *tcpIface, *inputFormat, tlsConfig)
-		if err != nil {
-			log.Fatalf("failed to create TCP collector: %s", err.Error())
-		}
-		if err := collector.Start(batcher.C()); err != nil {
+		if err := startTCPCollector(*tcpIface, *inputFormat, tlsConfig, batcher); err != nil {
 			log.Fatalf("failed to start TCP collector: %s", err.Error())
 		}
 		log.Printf("TCP collector listening to %s", *tcpIface)
@@ -189,17 +179,22 @@ func main() {
 
 	stats.Set("launch", time.Now().UTC())
 
-	// Set up signal handling.
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
-
-	// Block until one of the signals above is received
-	select {
-	case <-signalCh:
-		log.Println("signal received, shutting down...")
-	}
+	// Wait forever for signals.
+	waitForSignals()
 
 	stopProfile()
+}
+
+func startTCPCollector(iface, format string, tls *tls.Config, batcher *ekanite.Batcher) error {
+	collector, err := input.NewCollector("tcp", iface, format, tls)
+	if err != nil {
+		return fmt.Errorf(("failed to create TCP collector: %s"), err.Error())
+	}
+	if err := collector.Start(batcher.C()); err != nil {
+		return fmt.Errorf("failed to start TCP collector: %s", err.Error())
+	}
+
+	return nil
 }
 
 func startUDPCollector(iface, format string, batcher *ekanite.Batcher) error {
@@ -292,6 +287,19 @@ func drainLog(msg string, errChan <-chan error) {
 				log.Printf("%s: %s", msg, err.Error())
 			}
 		}
+	}
+}
+
+// waitForSignals blocks until a signal is received.
+func waitForSignals() {
+	// Set up signal handling.
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+
+	// Block until one of the signals above is received
+	select {
+	case <-signalCh:
+		log.Println("signal received, shutting down...")
 	}
 }
 
