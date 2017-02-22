@@ -25,9 +25,9 @@ func (e Event) ID() DocID {
 // Data returns the indexable data.
 func (e Event) Data() interface{} {
 	return struct {
-		Message string
+		Message map[string]interface{}
 	}{
-		Message: e.Text,
+		Message: e.Parsed,
 	}
 }
 

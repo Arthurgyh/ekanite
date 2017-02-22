@@ -5,6 +5,8 @@ import (
 	//	"regexp"
 	"strconv"
 
+	"time"
+
 	"github.com/Arthurgyh/syslog"
 )
 
@@ -22,7 +24,7 @@ func (p *Parser) newNginxParser(logger string) {
 func (s *NginxLogParser) doParse(raw []byte) (*syslog.Message, error) {
 	switch s.logType {
 	case fmtsByStandard[1]:
-		fmt.Printf("enter 1: %s", s.logType)
+		fmt.Printf("enter 1: %s\n", s.logType)
 		return syslog.ParseMessage(raw, syslog.NginxError)
 		break
 	default: //case "NginxAccess":
@@ -34,7 +36,7 @@ func (s *NginxLogParser) doParse(raw []byte) (*syslog.Message, error) {
 }
 
 func (s *NginxLogParser) parse(raw []byte, result *map[string]interface{}) {
-	msg, err := syslog.ParseMessage(raw, syslog.NginxAccess)
+	msg, err := s.doParse(raw)
 	if err != nil || msg == nil {
 		stats.Add(s.logType+"Unparsed", 1)
 		return
@@ -51,7 +53,7 @@ func (s *NginxLogParser) parse(raw []byte, result *map[string]interface{}) {
 	*result = map[string]interface{}{
 		"priority":   pri,
 		"version":    ver,
-		"timestamp":  msg.Timestamp,
+		"timestamp":  msg.Timestamp.Format(time.RFC3339),
 		"host":       msg.Hostname,
 		"app":        msg.Appname,
 		"pid":        pid,
